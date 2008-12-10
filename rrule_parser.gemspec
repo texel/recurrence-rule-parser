@@ -21,6 +21,6 @@ Gem::Specification.new do |s|
   )
   s.rdoc_options = ["--main", "README.txt"]
   s.extra_rdoc_files = ["History.txt", "Manifest.txt", "README.txt"]
-  s.add_dependency("runt", ["> 0.6.0"])
-  s.add_dependency("icalendar", ["> 1.0.2"])
+  s.add_dependency("runt", [">= 0.7.0"])
+  s.add_dependency("icalendar", [">= 1.0.2"])
 end
