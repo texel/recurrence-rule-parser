@@ -15,7 +15,6 @@ Gem::Specification.new do |s|
     Rakefile
     bin/rrule_parser
     lib/rrule_parser.rb
-    test/test_rrule_parser.rb
   )
   s.test_files = %w(
     spec/lib/rrule_parser_spec.rb
