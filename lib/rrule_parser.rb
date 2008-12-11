@@ -27,16 +27,19 @@ class RruleParser
   
   def initialize(event)
     @expressions      = []
+    @count            = 0
     self.rules        = {}
     self.event        = event
     self.parse_rules(event)
+    parse_count
   end
   
   # Parse rules, output temporal expressions
-  def expressions
+  def expressions        
     @expressions = []
     @expressions << parse_frequency_and_interval
     @expressions << parse_byday
+    @expressions << parse_until
     @expressions.compact!
     @expressions
   end
@@ -45,11 +48,23 @@ class RruleParser
     self.expressions.inject {|m, v| v & m}
   end
   
+  # Accepts a range of dates and outputs an array of dates matching the temporal expression.
+  def dates(range)
+    if @count <= 0
+      self.expression.dates(range)
+    else
+      temp_range = self.event.start.to_date..(range.last)
+      temp_dates = self.expression.dates(temp_range, @count)
+      temp_dates.select do |date|
+        range.include?(date)
+      end
+    end
+  end
+  
   protected
   
   def parse_rules(event)
     rrules = event.recurrence_rules
-
     rrules.each do |rule|
       pairs = rule.split(";")
       pairs.each do |pair|
@@ -74,11 +89,22 @@ class RruleParser
     end
   end
   
+  # Currently only supports days of the week (MO, TU, WED, etc.) 
   def parse_byday
     if self.rules[:byday]
       self.rules[:byday].map{ |day| Runt::DIWeek.new(RruleParser::DAYS[day]) }.inject do |m, expr|
         m | expr
       end
     end
+  end
+  
+  def parse_until
+    if self.rules[:until]
+      Runt::BeforeTE.new(Date.parse(self.rules[:until]))
+    end
+  end
+  
+  def parse_count
+    @count = self.rules[:count].to_i if self.rules[:count]
   end
 end
