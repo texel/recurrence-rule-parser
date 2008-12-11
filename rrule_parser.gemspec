@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name     = "recurrence-rule-parser"
-  s.version  = "0.0.3"
+  s.version  = "0.0.4"
   s.date     = "2008-12-10"
   s.summary  = "iCalendar to Temporal Expression parser"
   s.email    = "texel1@gmail.com"
