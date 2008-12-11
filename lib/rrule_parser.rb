@@ -39,6 +39,7 @@ class RruleParser
     @expressions = []
     @expressions << parse_frequency_and_interval
     @expressions << parse_byday
+    @expressions << parse_start
     @expressions << parse_until
     @expressions.compact!
     @expressions
@@ -79,6 +80,11 @@ class RruleParser
         rules[key] = rule.split(',')
       end
     end
+  end
+  
+  def parse_start
+    start_date = Date.civil(self.event.start.year, self.event.start.month, self.event.start.day - 1)
+    Runt::AfterTE.new(start_date)
   end
   
   def parse_frequency_and_interval
