@@ -1,3 +1,4 @@
+require 'rubygems'
 require 'runt'
 require 'icalendar'
 
@@ -38,7 +39,7 @@ class RruleParser
   def expressions        
     @expressions = []
     @expressions << parse_frequency_and_interval
-    @expressions << parse_byday
+    @expressions << send(:"parse_#{self.rules[:freq].downcase}")
     @expressions << parse_start
     @expressions << parse_until
     @expressions.compact!
@@ -51,15 +52,21 @@ class RruleParser
   
   # Accepts a range of dates and outputs an array of dates matching the temporal expression.
   def dates(range)
+    dates = []
+    
     if @count <= 0
-      self.expression.dates(range)
+      dates << self.expression.dates(range)
     else
-      temp_range = self.event.start.to_date..(range.last)
+      temp_range = (self.event.start.send :to_date)..(range.last)
       temp_dates = self.expression.dates(temp_range, @count)
-      temp_dates.select do |date|
+      dates << temp_dates.select do |date|
         range.include?(date)
       end
     end
+  
+    # TODO put original date back in if recurrence rule doesn't define it.
+    dates << self.event.start.send(:to_date)
+    dates.flatten.uniq
   end
   
   protected
@@ -83,7 +90,7 @@ class RruleParser
   end
   
   def parse_start
-    start_date = Date.civil(self.event.start.year, self.event.start.month, self.event.start.day - 1)
+    start_date = Date.civil(self.event.start.year, self.event.start.month, self.event.start.day) - 1
     Runt::AfterTE.new(start_date)
   end
   
@@ -95,14 +102,37 @@ class RruleParser
     end
   end
   
-  # Currently only supports days of the week (MO, TU, WED, etc.) 
-  def parse_byday
+  def parse_daily
+    # TODO: Support for daily recurrences
+  end
+  
+  def parse_weekly
     if self.rules[:byday]
-      self.rules[:byday].map{ |day| Runt::DIWeek.new(RruleParser::DAYS[day]) }.inject do |m, expr|
+      self.rules[:byday].map { |day| Runt::DIWeek.new(RruleParser::DAYS[day]) }.inject do |m, expr|
         m | expr
       end
+    else
+      # Make the event recur on the day of the original event.
+      Runt::DIWeek.new(self.event.start.wday)
     end
   end
+  
+  def parse_monthly
+    if self.rules[:byday]
+      # TODO: Support monthly byday
+    elsif self.rules[:bymonthday]
+      self.rules[:bymonthday].map { |day| Runt::REMonth.new(day.to_i) }.inject do |m, expr|
+        m | expr
+      end
+    else
+      Runt::REMonth.new(self.event.start.day, self.event.start.day)
+    end
+  end
+  
+  def parse_yearly
+    # TODO: Support for yearly recurrences
+  end
+  
   
   def parse_until
     if self.rules[:until]
