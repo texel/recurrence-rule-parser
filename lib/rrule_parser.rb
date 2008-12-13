@@ -109,7 +109,7 @@ class RruleParser
   
   def parse_weekly
     if self.rules[:byday]
-      self.rules[:byday].map { |day| Runt::DIWeek.new(RruleParser::DAYS[day]) }.inject do |m, expr|
+      self.rules[:byday].map { |day| parse_byday(day) }.inject do |m, expr|
         m | expr
       end
     else
@@ -121,7 +121,7 @@ class RruleParser
   def parse_monthly
     if self.rules[:byday]
       self.rules[:byday].map do |day_string|
-        byday_from_day_string(day_string)
+        parse_byday(day_string)
       end.inject {|m, expr| m | expr}
     elsif self.rules[:bymonthday]
       self.rules[:bymonthday].map { |day| Runt::REMonth.new(day.to_i) }.inject do |m, expr|
@@ -144,7 +144,7 @@ class RruleParser
     end
     
     if self.rules[:byday]
-      expressions << self.rules[:byday].map { |day_string| byday_from_day_string(day_string) }.inject {|m, v| m | v}
+      expressions << self.rules[:byday].map { |day_string| parse_byday(day_string) }.inject {|m, v| m | v}
     else
       expressions << Runt::REMonth.new(self.event.start.day)
     end
@@ -162,9 +162,14 @@ class RruleParser
     @count = self.rules[:count].to_i if self.rules[:count]
   end
   
-  def byday_from_day_string(day_string)
-    day_index         = day_string.to_i
-    day               = DAYS[day_string.gsub(day_index.to_s, '')] # Why is abbreviation such a long word?
-    Runt::DIMonth.new(day_index, day)
+  def parse_byday(day_string)
+    # BYDAY rules can be in one of two formats: 2TU (2nd Tuesday), or TU (every Tuesday)
+    if day_string =~ /\d/
+      day_index         = day_string.to_i
+      day               = DAYS[day_string.gsub(day_index.to_s, '')] # Why is abbreviation such a long word?
+      Runt::DIMonth.new(day_index, day)
+    else
+      Runt::DIWeek.new(RruleParser::DAYS[day_string])
+    end
   end
 end
