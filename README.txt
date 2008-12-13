@@ -1,6 +1,6 @@
 = RruleParser
 
-* FIX (url)
+http://www.github.com/texel/recurrence-rule-parser
 
 == DESCRIPTION:
 
@@ -10,13 +10,30 @@ and handles translating recurrence rules into temporal expressions.
 == FEATURES/PROBLEMS:
 
 Current list of supported expressions:
-FREQ
-INTERVAL
-BYDAY
+FREQ, INTERVAL, BYDAY, BYMONTHDAY, UNTIL
+
+Many values are still unimplemented.
 
 == SYNOPSIS:
 
-  code samples forthcoming.
+RruleParser should be able to consume any object acting like Icalendar::Event, containing
+recurrence rules as specified by the iCalendar (RFC 2445) specification. For more information
+on formatting of recurrence rules, visit http://www.kanzaki.com/docs/ical/rrule.html
+
+== EXAMPLES:
+
+  event       = Icalendar::Event.new
+  event.start = Time.parse('12/1/2008 3pm')
+  event.end   = Time.parse('12/1/2008 6pm')
+  
+  event.recurrence_rules = ["FREQ=WEEKLY;INTERVAL=1;COUNT=10"] 
+  
+  parser      = RruleParser.new(event)
+  date_range  = Date.parse('11/30/2008')..Date.parse('1/1/2009')
+  
+  parser.dates(date_range)
+  
+  #=> [Mon, 01 Dec 2008, Mon, 08 Dec 2008, Mon, 15 Dec 2008, Mon, 22 Dec 2008, Mon, 29 Dec 2008]
 
 == REQUIREMENTS:
 
