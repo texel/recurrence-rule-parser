@@ -152,8 +152,29 @@ describe RruleParser do
             @parser.dates(@range).map {|d| [Runt::Mon, Runt::Wed, Runt::Fri].include?(d.wday) }.all?.should be_true
           end
         end
+        
+        context "recurring every day" do
+          before(:each) do
+            @event.recurrence_rules = ['FREQ=DAILY;INTERVAL=1']
+            create_parser(@event)
+          end
+
+          it "should return 31 dates" do
+            @parser.dates(@range).size.should == 32
+          end
+        end
+        
+        context "recurring every 2 days" do
+          before(:each) do
+            @event.recurrence_rules = ['FREQ=DAILY;INTERVAL=2']
+            create_parser(@event)
+          end
+
+          it "should return 31 dates" do
+            @parser.dates(@range).size.should == 16
+          end
+        end
       end
-      
       
       context "with a one-year range" do
         before(:each) do
@@ -202,6 +223,80 @@ describe RruleParser do
           
           it "should return dates only on the 1st and 15th of the month" do
             @parser.dates(@range).map {|d| [1, 15].include?(d.day) }.all?.should be_true
+          end
+        end
+        
+        context "recurring the first Monday of every month" do
+          before(:each) do
+            @event.recurrence_rules = ['FREQ=MONTHLY;INTERVAL=1;BYDAY=1MO']
+            create_parser(@event)          
+          end
+          
+          it "should return 12 dates" do
+            @parser.dates(@range).size.should == 12
+          end
+          
+          it "should return only Mondays" do
+            # Garfield hates this recurrence rule.
+            @parser.dates(@range).map {|d| d.wday == Runt::Monday}.all?.should be_true
+          end
+        end
+      end
+      
+      context "with a five-year range" do
+        before(:each) do
+          @range = (Date.civil(2008, 12, 1)..(Date.civil(2013, 11, 30)))
+        end
+        
+        context "recurring every year" do
+          before do
+            @event.recurrence_rules = ['FREQ=YEARLY;INTERVAL=1']
+            create_parser(@event)
+            @dates = @parser.dates(@range)
+          end
+          
+          it "should return 5 dates" do
+            @dates.size.should == 5
+          end
+          
+          it "should return the correct date each year" do
+            @dates.map do |d| 
+              [:month, :day].map do |method|
+                d.send(method) == @event.start.send(method)
+              end.all?
+            end.all?.should be_true
+          end
+        end
+        
+        context "recurring every other year" do
+          before do
+            @event.recurrence_rules = ['FREQ=YEARLY;INTERVAL=2']
+            create_parser(@event)
+            @dates = @parser.dates(@range)
+          end
+          
+          it "should return 3 dates" do
+            @dates.size.should == 3
+          end
+          
+          it "should return the correct date each year" do
+            @dates.map do |d| 
+              [:month, :day].map do |method|
+                d.send(method) == @event.start.send(method)
+              end.all?
+            end.all?.should be_true
+          end
+        end
+        
+        context "recurring every December and June" do
+          before do
+            @event.recurrence_rules = ['FREQ=YEARLY;INTERVAL=1;BYMONTH=6,12']
+            create_parser(@event)
+            @dates = @parser.dates(@range)
+          end
+          
+          it "should return 10 dates" do
+            @dates.size.should == 10
           end
         end
       end

@@ -65,7 +65,8 @@ class RruleParser
     end
   
     # TODO put original date back in if recurrence rule doesn't define it.
-    dates << self.event.start.send(:to_date)
+    start_date = self.event.start.send(:to_date)
+    dates << start_date if range.include?(start_date)
     dates.flatten.uniq
   end
   
@@ -103,7 +104,7 @@ class RruleParser
   end
   
   def parse_daily
-    # TODO: Support for daily recurrences
+    return
   end
   
   def parse_weekly
@@ -119,7 +120,9 @@ class RruleParser
   
   def parse_monthly
     if self.rules[:byday]
-      # TODO: Support monthly byday
+      self.rules[:byday].map do |day_string|
+        byday_from_day_string(day_string)
+      end.inject {|m, expr| m | expr}
     elsif self.rules[:bymonthday]
       self.rules[:bymonthday].map { |day| Runt::REMonth.new(day.to_i) }.inject do |m, expr|
         m | expr
@@ -130,9 +133,24 @@ class RruleParser
   end
   
   def parse_yearly
-    # TODO: Support for yearly recurrences
+    expressions = []
+
+    if self.rules[:bymonth]
+      expressions << self.rules[:bymonth].map { |month| Runt::REYear.new(month.to_i) }.inject do |m, expr|
+        m | expr
+      end
+    else
+      expressions << Runt::REYear.new(self.event.start.month)
+    end
+    
+    if self.rules[:byday]
+      expressions << self.rules[:byday].map { |day_string| byday_from_day_string(day_string) }.inject {|m, v| m | v}
+    else
+      expressions << Runt::REMonth.new(self.event.start.day)
+    end
+    
+    expressions.inject {|m, expr| m & expr}
   end
-  
   
   def parse_until
     if self.rules[:until]
@@ -142,5 +160,11 @@ class RruleParser
   
   def parse_count
     @count = self.rules[:count].to_i if self.rules[:count]
+  end
+  
+  def byday_from_day_string(day_string)
+    day_index         = day_string.to_i
+    day               = DAYS[day_string.gsub(day_index.to_s, '')] # Why is abbreviation such a long word?
+    Runt::DIMonth.new(day_index, day)
   end
 end
