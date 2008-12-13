@@ -37,8 +37,8 @@ on formatting of recurrence rules, visit http://www.kanzaki.com/docs/ical/rrule.
 
 == REQUIREMENTS:
 
-requires Runt.
-requires Icalendar and RSpec if you wish to run the specs.
+requires Runt (http://runt.rubyforge.org).
+requires Icalendar (http://icalendar.rubyforge.org) and RSpec (http://www.rspec.info) if you wish to run the specs.
 
 == INSTALL:
 
