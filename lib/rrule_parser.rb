@@ -1,6 +1,5 @@
 require 'rubygems'
 require 'runt'
-require 'icalendar'
 
 class RruleParser
   VERSION = '1.0.0'
