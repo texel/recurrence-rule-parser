@@ -72,6 +72,7 @@ class RruleParser
   protected
   
   def parse_rules(event)
+    self.rules = {}
     rrules = event.recurrence_rules
     rrules.each do |rule|
       pairs = rule.split(";")
@@ -85,6 +86,15 @@ class RruleParser
     self.rules.each do |key, rule|
       if rule =~ /,/
         rules[key] = rule.split(',')
+      end
+    end
+    
+    # Override rules to_s
+    self.rules.instance_eval do
+      def to_s
+        self.map do |key, value|
+          "#{key.to_s.upcase}=#{value.map.join(',')}"
+        end.join(";")
       end
     end
   end
