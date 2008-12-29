@@ -23,14 +23,15 @@ class RruleParser
   }
   
   attr_accessor :event
-  attr_accessor :rules
+  attr_accessor :rules, :exceptions
   
   def initialize(event)
     @expressions      = []
     @count            = 0
     self.rules        = {}
     self.event        = event
-    self.parse_rules(event)
+    self.parse_rules
+    self.parse_exceptions
     parse_count
   end
   
@@ -63,17 +64,18 @@ class RruleParser
       end
     end
   
-    # TODO put original date back in if recurrence rule doesn't define it.
+    # Put original date back in if recurrence rule doesn't define it.
     start_date = self.event.start.send(:to_date)
     dates << start_date if range.include?(start_date)
-    dates.flatten.uniq
+    
+    dates.flatten.uniq - self.exceptions
   end
   
   protected
   
-  def parse_rules(event)
+  def parse_rules
     self.rules = {}
-    rrules = event.recurrence_rules
+    rrules = self.event.recurrence_rules
     rrules.each do |rule|
       pairs = rule.split(";")
       pairs.each do |pair|
@@ -96,6 +98,12 @@ class RruleParser
           "#{key.to_s.upcase}=#{value.map.join(',')}"
         end.join(";")
       end
+    end
+  end
+  
+  def parse_exceptions
+    self.exceptions = self.event.exception_dates.map do |exception_date|
+      Date.parse(exception_date)
     end
   end
   
