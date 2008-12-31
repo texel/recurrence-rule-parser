@@ -1,5 +1,6 @@
 require 'rubygems'
 require 'runt'
+require 'tzinfo'
 
 class RruleParser
   VERSION = '1.0.0'
@@ -102,8 +103,15 @@ class RruleParser
   end
   
   def parse_exceptions
-    self.exceptions = self.event.exception_dates.map do |exception_date|
-      Date.parse(exception_date)
+    # Exception dates are a bit of a misnomer. They should be stored
+    # as Times instead. Right now we are going to assume all exdates
+    # are stored as UTC. We can support time zone conversion later.
+    self.exceptions = self.event.exception_dates.map do |exception_time|
+      if exception_date.is_a?(Time)
+        exception_date
+      else
+        Time.parse(exception_date)
+      end
     end
   end
   
