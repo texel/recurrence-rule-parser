@@ -107,8 +107,8 @@ class RruleParser
     # as Times instead. Right now we are going to assume all exdates
     # are stored as UTC. We can support time zone conversion later.
     self.exceptions = self.event.exception_dates.map do |exception_time|
-      if exception_date.is_a?(Time)
-        exception_date
+      if exception_time.is_a?(Time)
+        exception_time
       else
         Time.parse(exception_date)
       end
