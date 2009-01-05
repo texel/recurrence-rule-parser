@@ -99,9 +99,17 @@ class RruleParser
     # Override rules to_s
     rules.instance_eval do
       def to_s
-        self.map do |key, value|
+        # Manual hack: iCal wants FREQ and INTERVAL to come first.
+        manual_keys = [:freq, :interval]
+        arr = manual_keys.map do |key|
+          "#{key.to_s.upcase}=#{self[key].map.join(',')}"
+        end
+        
+        arr += self.reject{ |key, value| manual_keys.include?(key) }.map do |key, value|
           "#{key.to_s.upcase}=#{value.map.join(',')}"
-        end.join(";")
+        end
+        
+        arr.join(";")
       end
     end
     
