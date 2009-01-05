@@ -162,21 +162,6 @@ describe RruleParser do
           it "should return 32 dates" do
             @parser.dates(@range).size.should == 32
           end
-          
-          context "with an exception on 12/5/2008" do
-            before(:each) do
-              @event.exception_dates = ['EXDATE;TZID=US/Pacific:20081205T150000']
-              create_parser(@event)
-            end
-            
-            it "should return 31 dates" do
-              @parser.dates(@range).size.should == 31
-            end
-            
-            it "should not return a date on 12/5/2008" do
-              @parser.dates(@range).should_not include(Date.parse('12/5/2008'))
-            end
-          end
         end
         
         context "recurring every 2 days" do

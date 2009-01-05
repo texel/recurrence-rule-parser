@@ -1,6 +1,5 @@
 require 'rubygems'
 require 'runt'
-require 'tzinfo'
 
 class RruleParser
   VERSION = '1.0.0'
@@ -25,22 +24,29 @@ class RruleParser
   
   attr_accessor :event
   attr_accessor :rules, :exceptions
-  
+    
   def initialize(event)
+    self.event = event
+    self.setup
+  end
+  
+  def setup
     @expressions      = []
     @count            = 0
     self.rules        = {}
-    self.event        = event
     self.parse_rules
     self.parse_exceptions
     parse_count
+    self
   end
+  
+  alias :reload :setup
   
   # Parse rules, output temporal expressions
   def expressions        
     @expressions = []
     @expressions << parse_frequency_and_interval
-    @expressions << send(:"parse_#{self.rules[:freq].downcase}")
+    @expressions << send(:"parse_#{self.rules[:freq].downcase}") if self.rules[:freq]
     @expressions << parse_start
     @expressions << parse_until
     @expressions.compact!
@@ -72,34 +78,40 @@ class RruleParser
     dates.flatten.uniq - self.exceptions
   end
   
-  protected
-  
-  def parse_rules
-    self.rules = {}
-    rrules = self.event.recurrence_rules
+  def self.parse_rules(rrules)
+    rules = {}
+    
     rrules.each do |rule|
       pairs = rule.split(";")
       pairs.each do |pair|
         array = pair.split('=')
-        self.rules[array[0].downcase.to_sym] = array[1]
+        rules[array[0].downcase.to_sym] = array[1]
       end
     end
-    
+
     # Parse comma separated lists.
-    self.rules.each do |key, rule|
+    rules.each do |key, rule|
       if rule =~ /,/
         rules[key] = rule.split(',')
       end
     end
-    
+
     # Override rules to_s
-    self.rules.instance_eval do
+    rules.instance_eval do
       def to_s
         self.map do |key, value|
           "#{key.to_s.upcase}=#{value.map.join(',')}"
         end.join(";")
       end
     end
+    
+    rules
+  end
+  
+  protected
+  
+  def parse_rules
+    self.rules = RruleParser.parse_rules(self.event.recurrence_rules)
   end
   
   def parse_exceptions
@@ -110,7 +122,7 @@ class RruleParser
       if exception_time.is_a?(Time)
         exception_time
       else
-        Time.parse(exception_date)
+        Time.parse(exception_time)
       end
     end
   end
