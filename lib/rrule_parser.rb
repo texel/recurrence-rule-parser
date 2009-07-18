@@ -12,7 +12,16 @@ class RruleParser
     "TH" => Runt::Thursday,
     "FR" => Runt::Friday,
     "SA" => Runt::Saturday,
-    "SU" => Runt::Sunday
+  }
+  
+  DAY_NAMES = {
+    "SU" => 'Sunday',
+    "MO" => 'Monday',
+    "TU" => 'Tuesday',
+    "WE" => 'Wednesday',
+    "TH" => 'Thursday',
+    "FR" => 'Friday',
+    "SA" => 'Saturday',
   }
   
   ADVERB_MAP = {
@@ -57,6 +66,14 @@ class RruleParser
     self.expressions.inject {|m, v| v & m}
   end
   
+  def frequency
+    self.rules[:frequency]
+  end
+  
+  def interval
+    self.rules[:interval].to_i || 1
+  end
+  
   # Accepts a range of dates and outputs an array of dates matching the temporal expression.
   def dates(range)
     dates = []
@@ -99,21 +116,31 @@ class RruleParser
     # Override rules to_s
     rules.instance_eval do
       def to_s
-        # Manual hack: iCal wants FREQ and INTERVAL to come first.
-        manual_keys = [:freq, :interval]
-        arr = manual_keys.map do |key|
-          "#{key.to_s.upcase}=#{self[key].map.join(',')}"
+        # Enforce order: FREQ, INTERVAL, BYDAY
+        ordered = [:freq, :interval, :byday]
+        ordered_values = ordered.map do |key|
+          "#{key.to_s.upcase}=#{self[key].map.join(',')}" if self[key]
         end
         
-        arr += self.reject{ |key, value| manual_keys.include?(key) }.map do |key, value|
-          "#{key.to_s.upcase}=#{value.map.join(',')}"
+        unordered_values = self.map do |key, value|
+          "#{key.to_s.upcase}=#{value.map.join(',')}" unless ordered.include?(key)
         end
         
-        arr.join(";")
+        all_values = (ordered_values + unordered_values).compact.join(';')
       end
     end
     
     rules
+  end
+  
+  def to_s
+    clauses = [freq_interval_clause, byday_clause, until_clause].compact.join(' ')
+    
+    if clauses.blank?
+      'Never'
+    else
+      "Every #{clauses}"
+    end
   end
   
   protected
@@ -137,15 +164,15 @@ class RruleParser
   end
   
   def parse_frequency_and_interval
-    if self.rules[:freq]
-      frequency = self.rules[:freq]
-      interval  = self.rules[:interval] ? self.rules[:interval].to_i : 1
-      Runt::EveryTE.new(self.event.start, interval, Runt::DPrecision.const_get(ADVERB_MAP[frequency]))
+    if frequency
+      unless frequency == 'DAILY'
+        Runt::EveryTE.new(self.event.start, interval, Runt::DPrecision.const_get(ADVERB_MAP[frequency]))
+      end
     end
   end
   
   def parse_daily
-    return
+    Runt::DayIntervalTE.new(self.event.start, interval)
   end
   
   def parse_weekly
@@ -212,5 +239,49 @@ class RruleParser
     else
       Runt::DIWeek.new(RruleParser::DAYS[day_string])
     end
+  end
+  
+  def pluralize(count, word)
+    if count == 1
+      word
+    else
+      "#{count} #{word}s"
+    end
+  end
+  
+  def freq_interval_clause
+    return nil unless rules[:freq] && rules[:interval]
+    
+    pluralize(rules[:interval].to_i, ADVERB_MAP[rules[:freq]].downcase)
+  end
+  
+  def byday_clause
+    return nil unless rules[:byday]
+    
+    days = rules[:byday].map { |abbr| DAY_NAMES[abbr] }
+    
+    output =
+      case days.length
+      when 0
+        return nil
+      when 1
+        days.first
+      when 2
+        days.join(' and ')
+      else
+        last_day    = days.pop
+        other_days  = days.join(', ')
+        [other_days, last_day].join(', and ')
+      end
+      
+    "on #{output}" if output
+  end
+  
+  def until_clause
+    return nil unless rules[:until]
+    
+    time = Time.zone.parse rules[:until]
+    
+    "until #{time.strftime("%B %d, %Y")}"
   end
 end
