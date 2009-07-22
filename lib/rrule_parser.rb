@@ -67,7 +67,7 @@ class RruleParser
   end
   
   def frequency
-    self.rules[:frequency]
+    self.rules[:freq]
   end
   
   def interval
