@@ -42,7 +42,7 @@ requires Icalendar (http://icalendar.rubyforge.org) and RSpec (http://www.rspec.
 
 == INSTALL:
 
-sudo gem install texel-rrule-parser
+sudo gem install recurrence-rule-parser
 
 == LICENSE:
 
